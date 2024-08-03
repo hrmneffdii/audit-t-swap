@@ -46,6 +46,8 @@ contract TSwapPool is ERC20 {
     uint256 private swap_count = 0;
     uint256 private constant SWAP_COUNT_MAX = 10;
 
+    uint256 x_before;
+
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -307,6 +309,7 @@ contract TSwapPool is ERC20 {
         revertIfDeadlinePassed(deadline)
         returns (uint256 output)
     {
+        x_before = inputToken.balanceOf(address(this));
         uint256 inputReserves = inputToken.balanceOf(address(this));
         uint256 outputReserves = outputToken.balanceOf(address(this));
 
