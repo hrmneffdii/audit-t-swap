@@ -6,11 +6,14 @@ import {StdInvariant} from "@forge-std/StdInvariant.sol";
 import {ERC20Mock} from "../mocks/ERC20Mocks.sol";
 import {PoolFactory} from "../../src/PoolFactory.sol";
 import {TSwapPool} from "../../src/TSwapPool.sol";
+import {Handler} from "../invariant/handler.t.sol";
 
 contract Invariant is StdInvariant, Test{
     // we have two assets
     ERC20Mock poolToken;
     ERC20Mock weth;
+
+    Handler handler;
 
     // we are gonna need the contract
     PoolFactory factory;
@@ -41,5 +44,14 @@ contract Invariant is StdInvariant, Test{
             uint256(STARTING_X),
             uint64(block.timestamp)
         );
+
+        handler = new Handler(pool);
+        bytes4[] memory selectors = new bytes4[](2);
+        selectors[0] = handler.deposit.selector;
+        selectors[1] = handler.swapPoolTokenForWethBasedOnOutputWeth.selector;
+    }
+
+    function invariant_constantFormulaProductStaysTheSame() public view {
+        assertEq(handler.actualDeltaX(), handler.expectedDeltaX());
     }
 }
