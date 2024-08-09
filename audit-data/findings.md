@@ -77,6 +77,45 @@ Consider change the implementation to use `swapExactInput` instead of `swapExact
     }
 ```
 
+### [H-3] In `TSwapPool::_swap` the extra tokens given to users to after every `swapCount` breaks the protocol invariant of `x * y = k`
+
+**Description**
+
+The protocol follows strict invariant of `x * y = k`. where :
+`x` : The balance of pool token
+`y` : The balance of eth
+`k` : The constant product formula, the ratio beetween
+
+This means, that whenever the balances changes in the protocol, the ratio between two amount remain constant, hence the `k`. However, this is broken due to extra incentive in the `_swap` function. Meaning that overtime the protocol funds will drained.
+
+The following th below code
+```javascript
+    swap_count++;
+        if (swap_count >= SWAP_COUNT_MAX) {
+            swap_count = 0;
+            outputToken.safeTransfer(msg.sender, 1_000_000_000_000_000_000);
+        }
+```
+
+**Impact**
+
+A user could maliciuosly drain the protocol of funds by doing alot of swap and collecting extra incentive given out ot protocol.
+
+**Proof of Concepts**
+
+**Recommended mitigation**
+
+Remove the extra incentive if the protocol want to keep the balance or we should set aside tokens in the same way we do this in fees.
+
+```diff
+-    swap_count++;
+-       if (swap_count >= SWAP_COUNT_MAX) {
+-           swap_count = 0;
+-           outputToken.safeTransfer(msg.sender, 1_000_000_000_000_000_000);
+-       }
+```
+
+
 ## Medium
 
 ### [M-1] `TSwapPool::deposit` is missing deadline check, causing the transaction to complete even after the deadline
