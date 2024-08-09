@@ -16,20 +16,26 @@ contract AuditTest is TSwapPoolTest {
 
         assert(result >= expected);
     }
-
-    function testSwapExactInput() public {
+    
+    modifier deposited {
         vm.startPrank(liquidityProvider);
         weth.approve(address(pool), 10e18);
         poolToken.approve(address(pool), 10e18);
         pool.deposit(10e18, 0, 10e18, uint64(block.timestamp));
         vm.stopPrank();
+        _;
+    }
 
-        
+    function testSwapExactInput() public deposited {
         vm.startPrank(user);
         weth.approve(address(pool), 1e18);
         uint256 result = pool.swapExactInput(weth, 1e18, poolToken, 1e17, uint64(block.timestamp));
         vm.stopPrank();
 
         assert(result == 0);
+    }
+
+    function testSwapExactOutput() public deposited {
+        console.log(pool.getPriceOfOneWethInPoolTokens());
     }
 }

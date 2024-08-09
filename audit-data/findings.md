@@ -84,6 +84,60 @@ Consider making the following function change
             returns (uint256 liquidityTokensToMint)    
 ```
 
+### [M-2] Lack of slippage protection in `TSwapPool::SwapExactOutput` causes users to potentially receive way fewer token.
+
+**Description**
+
+The `SwapExactOutput` function doesn't include any slippage protection. This function is similar to what is done im `SwapExactInput`, where the function specifies `minOutputAmount`. `SwapExactInput` should specifies a `maxInputAmount`.
+
+**Impact**
+
+If the market changes suddenly, it could lead to users experiencing less favorable swap outcomes.
+
+**Proof of Concepts**
+
+1. The price of 1 WETH right now is 1_000 USDC.
+2. User inputs a `SwapExactOutput` looking for 1 WETH
+   - inputToken USDC
+   - outputToken WETH
+   - outputAmount 1
+   - deadline whatever
+3. The function doesn't offer `maxInputAmount`
+4. as the transaction pending in the mempool, the market changes!! and the price maybe around 1 WETH -> 10_000 USDC, 10x more than user expected.
+5. The transaction completes, but the user sent the protocol 10_000 instead of 1_000 USDC.
+   
+**Recommended mitigation**
+
+We should include  `maxInputAmount` so the user only has spend up to a specify amount as well as predict how much they will spend in protocol.
+
+<details>
+
+```diff
+ function swapExactOutput(
+        IERC20 inputToken,
+        IERC20 outputToken,
+        uint256 outputAmount,
++       uint256 maxInputAmount,
+        uint64 deadline
+    )
+        public
+        revertIfZero(outputAmount)
+        revertIfDeadlinePassed(deadline)
+        returns (uint256 inputAmount)
+    {
+        uint256 inputReserves = inputToken.balanceOf(address(this));
+        uint256 outputReserves = outputToken.balanceOf(address(this));
+
+        inputAmount = getInputAmountBasedOnOutput(outputAmount, inputReserves, outputReserves);
++       if(inputAmount > maxInputAmount){
++           revert();
++       }
+        _swap(inputToken, inputAmount, outputToken, outputAmount);
+    }
+
+```
+</details>
+
 ## Low
 
 ### [L-1] `TSwapPool::LiquidityAdd` event has a parameter out of order
