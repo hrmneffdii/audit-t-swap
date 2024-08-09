@@ -51,6 +51,32 @@ function testGetInputAmountBasedOnOutput() public view {
     }
 ```
 
+### [H-2] `TSwapPool::sellPoolTokens` have mismatche input and output token, causing user to receive incorrect amount of token
+
+**Description**
+
+The `sellPoolTokens` function is intended o allow users to easily ell pool tokens and receive eth in exchange. Users indicate how many pool tokens they are willing to sell as a parameter. However, the function currently miscalculates the swaped amount. 
+
+This due to the fact that he `swapExactOutput` function is called, whereas `swapExactInput` function is the one that should be called because the user specify the input amount, not the output amount.
+
+**Impact**
+
+Users will swap the wrong amount of token. which is a severe distruption of protocol functionality.
+
+**Recommended mitigation**
+
+Consider change the implementation to use `swapExactInput` instead of `swapExactOutput`. Note that this would also require `minWethToReceive` to be pass in `swapExactInput`.
+
+```diff
+    function sellPoolTokens(
+        uint256 poolTokenAmount
++       uint256 minWethToReceive,
+        ) external returns (uint256 wethAmount) {
+-       return swapExactOutput(i_poolToken, i_wethToken, poolTokenAmount, uint64(block.timestamp));
++       return swapExactInput(i_poolToken, poolTokenAmount, i_wethToken, minWethToReceive, uint64(block.timestamp));
+    }
+```
+
 ## Medium
 
 ### [M-1] `TSwapPool::deposit` is missing deadline check, causing the transaction to complete even after the deadline
@@ -79,7 +105,7 @@ Consider making the following function change
             uint64 deadline
         )
             external
-+            revertIfDeadlinePassed(deadline)
++           revertIfDeadlinePassed(deadline)
             revertIfZero(wethToDeposit)
             returns (uint256 liquidityTokensToMint)    
 ```
