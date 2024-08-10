@@ -83,7 +83,7 @@ contract Handler is Test{
         weth.approve(address(pool), wethToDeposit);
 
         poolToken.mint(lp, poolTokenToDeposit);
-        poolToken.approve(lp, poolTokenToDeposit);
+        poolToken.approve(address(pool), poolTokenToDeposit);
 
         pool.deposit({
             wethToDeposit: wethToDeposit,
