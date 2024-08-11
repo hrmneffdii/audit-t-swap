@@ -68,34 +68,36 @@ contract AuditTest is TSwapPoolTest {
         console.log(pool.getPriceOfOneWethInPoolTokens() / 1e18);
     }
 
-    /**
-     * Scenario
-     * 
-     * a users always swap pool token for weth 10 times exactly
-     */
-    function test_breakTheInvariant() public deposited {
+    function testInvariantBroken() public {
+        vm.startPrank(liquidityProvider);
+        weth.approve(address(pool), 100e18);
+        poolToken.approve(address(pool), 100e18);
+        pool.deposit(100e18, 100e18, 100e18, uint64(block.timestamp));
+        vm.stopPrank();
 
-        int256 startingX = int256(poolToken.balanceOf(address(pool)));
+        uint256 outputWeth = 1e17;
+
+        vm.startPrank(user);
+        poolToken.approve(address(pool), type(uint256).max);
+        poolToken.mint(user, 100e18);
+        pool.swapExactOutput(poolToken, weth, outputWeth, uint64(block.timestamp));
+        pool.swapExactOutput(poolToken, weth, outputWeth, uint64(block.timestamp));
+        pool.swapExactOutput(poolToken, weth, outputWeth, uint64(block.timestamp));
+        pool.swapExactOutput(poolToken, weth, outputWeth, uint64(block.timestamp));
+        pool.swapExactOutput(poolToken, weth, outputWeth, uint64(block.timestamp));
+        pool.swapExactOutput(poolToken, weth, outputWeth, uint64(block.timestamp));
+        pool.swapExactOutput(poolToken, weth, outputWeth, uint64(block.timestamp));
+        pool.swapExactOutput(poolToken, weth, outputWeth, uint64(block.timestamp));
+        pool.swapExactOutput(poolToken, weth, outputWeth, uint64(block.timestamp));
+
         int256 startingY = int256(weth.balanceOf(address(pool)));
+        int256 expectedDeltaY = int256(-1) * int256(outputWeth);
 
-        for(uint64 i; i < boundResults.length; i++){
-            vm.startPrank(user);
-            poolToken.mint(user, boundResults[i]);
-            poolToken.approve(address(pool), boundResults[i]);
-            pool.swapExactOutput({
-                inputToken: poolToken,
-                outputToken: weth,
-                outputAmount: boundResults[i],
-                deadline: uint64(block.timestamp)
-            });
-            vm.stopPrank();
-        }
-        
-        int256 endingX = int256(poolToken.balanceOf(address(pool)));
-        int256 endingY = int256(weth.balanceOf(address(pool)));
+        pool.swapExactOutput(poolToken, weth, outputWeth, uint64(block.timestamp));
+        vm.stopPrank();
 
-        // balance x always decrease since a user doing swap token for eth, other hand, balance y always increase due to the protocol receive eth
-        assert(startingX >= endingX);
-        assert(startingY <= endingY);
+        uint256 endingY = weth.balanceOf(address(pool));
+        int256 actualDeltaY = int256(endingY) - int256(startingY);
+        assertEq(actualDeltaY, expectedDeltaY);
     }
 }
